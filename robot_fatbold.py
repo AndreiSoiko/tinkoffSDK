@@ -49,6 +49,10 @@ from tinkoff.invest.services import MarketDataStreamManager
 from tinkoff.invest.services import MarketDataService
 from tinkoff.invest import GetTradingStatusRequest
 
+import account_manager
+import trader
+import strategy
+
 
 #Все даты учитываются по всемирному времени
 def start_datetime() -> datetime:
