@@ -35,6 +35,9 @@ from tinkoff.invest.strategies.moving_average.plotter import (
     MovingAverageStrategyPlotter,
 )
 
+import my_account_manager
+import my_trader
+import my_strategy
 
 #Все даты учитываются по всемирному времени
 def start_datetime() -> datetime:
@@ -45,7 +48,7 @@ def main(start_balance_units = 100000, long_ma_min = 30, long_ma_max = 30, short
     print("Start")
    
     # sandbox token
-    token = os.environ["INVEST_TOKEN"]
+    token = os.environ["SANDBOX_TOKEN"]
 
    
 
@@ -181,11 +184,11 @@ def main(start_balance_units = 100000, long_ma_min = 30, long_ma_max = 30, short
             real_market_data_test_end=real_market_data_test_end,
             balance=balance,
         ) as mocked_services:
-            account_manager = AccountManager(
+            account_manager = my_account_manager.AccountManager(
                 services=mocked_services, strategy_settings=settings
             )
             state = MovingAverageStrategyState()
-            strategy = MovingAverageStrategy(
+            strategy = my_strategy.MovingAverageStrategy(
                 settings=settings,
                 account_manager=account_manager,
                 state=state,
@@ -196,7 +199,7 @@ def main(start_balance_units = 100000, long_ma_min = 30, long_ma_max = 30, short
                 state=state,
                 settings=settings,
             )
-            moving_average_strategy_trader = MovingAverageStrategyTrader(
+            moving_average_strategy_trader = my_trader.MovingAverageStrategyTrader(
                 strategy=strategy,
                 settings=settings,
                 services=mocked_services,
