@@ -5,6 +5,7 @@ from aiogram.utils.exceptions import BotBlocked
 from numpy import std
 import my_moving_average
 import robot_fatbold
+import asyncio
 
 
 BOT_TOKEN = os.environ["INVEST_BOT_TOKEN"]                             
@@ -82,7 +83,13 @@ async def start_trade(message: types.Message):
 
         while status ==  "Working" and robot_must_work:
             response = await gen.__anext__()
+           
+            status_trade_robot = True
+           
             status = response['status'] 
+            
+            await asyncio.sleep(0.1)
+            
             if flag and status == "Working":
                 keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True,row_width=2)
                 buttons = [
