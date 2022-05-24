@@ -14,6 +14,7 @@ from tinkoff.invest import (
     SubscriptionAction,
     OrderDirection,
     OrderType,
+    RequestError,
 )
 from tinkoff.invest.services import Services
 #from tinkoff.invest.strategies.base.account_manager import AccountManager
@@ -158,11 +159,15 @@ class MovingAverageStrategyTrader(Trader):
         logger.info("Trying to execute signal %s", signal)
         try:
             self._signal_executor.execute(signal)
+        except RequestError:
+            was_executed = False
+            logger.info("Signal was_executed = False")
+            logger.info("RequestError.__cause__ %s", RequestError.__cause__)
+            logger.info("RequestError.__context__ %s", RequestError.__context__)
+            logger.info("RequestError.code %s", RequestError.code)
+            logger.info("RequestError.details %s", RequestError.details)
         except:
             was_executed = False
-            # logger.info("Signal was_executed = False")
-            # logger.info("InvestError.__cause__ %s", InvestError.__cause__)
-            # logger.info("InvestError.__context__ %s", InvestError.__context__)
         else:
             was_executed = True
         self._supervisor.notify(
