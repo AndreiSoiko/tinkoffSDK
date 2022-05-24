@@ -53,6 +53,7 @@ import my_account_manager
 import my_trader
 import my_strategy
 import asyncio
+import my_signal_executor
 
 
 #Все даты учитываются по всемирному времени
@@ -155,7 +156,7 @@ async def main(long_ma = 30, short_ma= 3, std_period = 22):
         
 
         #Объект, который обрабатывает полученные стратегией сигналы и выставляет ордера на биржу
-        signal_executor = MovingAverageSignalExecutor(
+        signal_executor = my_signal_executor.MovingAverageSignalExecutor(
                 services=client,
                 state=state,
                 settings=settings,
