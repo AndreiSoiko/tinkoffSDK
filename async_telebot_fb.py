@@ -1,7 +1,11 @@
 import logging
 from aiogram import Bot, Dispatcher, executor, types
 import os
-from aiogram.utils.exceptions import BotBlocked
+from aiogram.utils.exceptions import BotBlocked, NetworkError
+from aiogram.utils.callback_data import CallbackData
+from aiogram.dispatcher.filters import Text
+from aiogram.utils.exceptions import MessageNotModified
+from contextlib import suppress
 from numpy import std
 import my_moving_average
 import robot_fatbold
@@ -11,8 +15,12 @@ import asyncio
 BOT_TOKEN = os.environ["INVEST_BOT_TOKEN"]                             
 password = os.environ["INVEST_BOT_PASSWORD"]               
 
-status_trade_robot = False #Глобальная переменная для хранения статуса робота.
-robot_must_work = True #Глобальная переменная для остановки робота
+#Переключатели для понимания в каком состоянии находится торговый робот
+#if robot_must_work == False, то при следующем выходе из генератора, цикл прервется и торговый робот будет отключен. 
+trade_robot_states = {
+    "status_trade_robot": False,
+    "robot_must_work": True
+}
 
 # Объект бота
 bot = Bot(token = BOT_TOKEN)
@@ -26,7 +34,7 @@ help = """
 /set - устанавливает настройки \n
 Cообщение "Запустить торгового робота" запускает робота с настройками,
 которые ты задал или настройками по умолчанию. \n
-Cообщение "Остановить торгового робота" останавливает робота. \n
+Cообщение "Остановить торгового робота" останавливает робота примерно за 60 сек. \n
 Cообщение "Настройки" показывает способ задать настройки \n
 
 Робот работает по стратегии: \n
@@ -40,6 +48,51 @@ Cообщение "Настройки" показывает способ зад�
 long_ma = 15
 short_ma = 3
 std_period = 5
+
+user_data = {
+    'long_ma': long_ma,
+    'short_ma': short_ma,
+    'std_period': std_period
+}
+
+def get_keyboard_fab():
+    buttons = [
+        types.InlineKeyboardButton(text="-1", callback_data=callback_numbers.new(action="decr")),
+        types.InlineKeyboardButton(text="+1", callback_data=callback_numbers.new(action="incr")),
+        types.InlineKeyboardButton(text="Подтвердить", callback_data=callback_numbers.new(action="finish"))
+    ]
+    keyboard = types.InlineKeyboardMarkup(row_width=2)
+    keyboard.add(*buttons)
+    return keyboard
+
+
+async def update_num_text_fab(message: types.Message, new_value: int):
+    with suppress(MessageNotModified):
+        await message.edit_text(f"Укажите значение long_ma: {new_value}", reply_markup=get_keyboard_fab())
+
+callback_numbers = CallbackData("long_ma", "action")
+
+@dp.callback_query_handler(callback_numbers.filter(action=["incr", "decr"]))
+async def callbacks_num_change_fab(call: types.CallbackQuery, callback_data: dict):
+    
+    user_value = user_data["long_ma"]
+    action = callback_data["action"]
+
+    if action == "incr":
+        user_data["long_ma"] = user_value + 1
+        await update_num_text_fab(call.message, user_value + 1)
+    elif action == "decr":
+        user_data["long_ma"] = user_value - 1
+        await update_num_text_fab(call.message, user_value - 1)
+    await call.answer()
+
+@dp.callback_query_handler(callback_numbers.filter(action=["finish"]))
+async def callbacks_num_finish_fab(call: types.CallbackQuery):
+    
+    user_value = user_data["long_ma"]
+    await call.message.edit_text(f"Установлено значение long_ma: {user_value}")
+    await call.answer()
+
 
 @dp.message_handler(commands="start")
 async def cmd_start(message: types.Message):
@@ -68,24 +121,22 @@ async def cmd_password(message: types.Message):
 
 
     
-@dp.message_handler(lambda message: message.text == "Запустить торгового робота")
+@dp.message_handler(Text(equals="Запустить торгового робота"))
 async def start_trade(message: types.Message):
     
-    global status_trade_robot
-    global robot_must_work
-
-    if status_trade_robot == False: 
+    
+    if trade_robot_states["status_trade_robot"] == False: 
 
         status = "Working"
 
-        gen = robot_fatbold.main(long_ma=long_ma,short_ma=short_ma,std_period=std_period)
+        gen = robot_fatbold.main(long_ma = user_data["long_ma"],short_ma = user_data["short_ma"], std_period = user_data["std_period"])
 
         flag = True #Чтобы один раз сообщить, что робот запущен.
 
-        while status ==  "Working" and robot_must_work:
+        while status ==  "Working" and  trade_robot_states["robot_must_work"]:
             response = await gen.__anext__()
            
-            status_trade_robot = True
+            trade_robot_states["status_trade_robot"] = True
            
             status = response['status'] 
             
@@ -103,14 +154,14 @@ async def start_trade(message: types.Message):
                 keyboard.add(*buttons)
                 await message.answer("Торговый робот запущен!",reply_markup=keyboard)
                 flag = False
-                status_trade_robot = True
-                robot_must_work = True
+                trade_robot_states["status_trade_robot"] = True
+                trade_robot_states["robot_must_work"] = True
 
             #status = response['status']
             #Робот работает ничего не делаем
         
-        status_trade_robot = False #Изменим статус
-        robot_must_work = True #Поднимим флаг, чтобы робот мог запуститься
+        trade_robot_states["status_trade_robot"] = False #Изменим статус
+        trade_robot_states["robot_must_work"] = True #Поднимим флаг, чтобы робот мог запуститься
         balance = response['balance']
         profit = response['profit']
         shares = response['shares']
@@ -145,13 +196,20 @@ async def start_trade(message: types.Message):
 @dp.message_handler(lambda message: message.text == "Остановить торгового робота")
 async def stop_trade(message: types.Message):
 
-    global status_trade_robot
-    global robot_must_work
-
-    if status_trade_robot == True: 
-        robot_must_work = False #Глобальная переменная для остановки робота
+    if trade_robot_states['status_trade_robot'] == True: 
+        trade_robot_states['robot_must_work'] = False #Глобальная переменная для остановки робота
     else:        
-        await message.answer("Робот и так не работал")
+        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True,row_width=2)
+        buttons = [
+        "Запустить торгового робота", 
+        "Тест в песочнице",
+        "Настройки",
+        "Инструкция",
+        "Баланс"    
+        ]
+        keyboard.add(*buttons)
+        
+        await message.answer("Робот и так не работал", reply_markup=keyboard)
 
 @dp.message_handler(lambda message: message.text == "Тест в песочнице")
 async def sandbox_test(message: types.Message):
@@ -194,11 +252,16 @@ async def sandbox_test(message: types.Message):
         await message.answer(result_message)
 
 @dp.message_handler(lambda message: message.text == "Настройки")
-async def sittings_setup(message: types.Message): 
-      send_message = """Введите сообщение в виде /set long_ma; short_ma; std. \n
-       Например: /set 15; 3; 5"""  
+async def sittings_setup(message: types.Message):
 
-      await message.answer(send_message)
+    user_value = user_data["long_ma"]
+    
+    await message.answer(f"Укажите значение long_ma: {user_value}", reply_markup=get_keyboard_fab())
+
+    #   send_message = """Введите сообщение в виде /set long_ma; short_ma; std. \n
+    #    Например: /set 15; 3; 5"""  
+
+    #   await message.answer(send_message)
 
 
 
@@ -234,6 +297,16 @@ async def error_bot_blocked(update: types.Update, exception: BotBlocked):
     # Update: объект события от Telegram. Exception: объект исключения
     # Здесь можно как-то обработать блокировку, например, удалить пользователя из БД
     print(f"Меня заблокировал пользователь!\nСообщение: {update}\nОшибка: {exception}")
+
+    # Такой хэндлер должен всегда возвращать True,
+    # если дальнейшая обработка не требуется.
+    return True
+
+@dp.errors_handler(exception=NetworkError)
+async def error_Network_Error(update: types.Update, exception: NetworkError):
+    # Update: объект события от Telegram. Exception: объект исключения
+    # Здесь можно как-то обработать блокировку, например, удалить пользователя из БД
+    print(f"ClientConnectorError: Cannot connect to host api.telegram.org:443 ssl:default [None] \nСообщение: {update}\nОшибка: {exception}")
 
     # Такой хэндлер должен всегда возвращать True,
     # если дальнейшая обработка не требуется.
