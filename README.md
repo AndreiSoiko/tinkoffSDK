@@ -25,7 +25,7 @@ tinkoffSDK contest
 1. SDK Tinkoff
 $ pip install tinkoff-investments
 
-2. Библеотека для асинхронного телеграмм бота
+2. Библиотека для асинхронного телеграмм бота
 $ pip install aiogram
 
 
