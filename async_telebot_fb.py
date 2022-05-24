@@ -44,15 +44,18 @@ Cообщение "Настройки" показывает способ зад�
 
 """
 
-
-long_ma = 15
-short_ma = 3
-std_period = 5
-
+#Настройки по умолчанию для боевого робота и песочницы
 user_data = {
-    'long_ma': long_ma,
-    'short_ma': short_ma,
-    'std_period': std_period
+    'long_ma':15,
+    'short_ma':3,
+    'std_period':5,
+    'start_balance_units':100000,
+    'long_ma_min':13,
+    'long_ma_max':15,
+    'short_ma_min':3,
+    'short_ma_max':4,
+    'std_period_min':6,
+    'std_period_max':8,    
 }
 
 def get_keyboard_fab(parametr:str) -> types.InlineKeyboardMarkup:
@@ -262,7 +265,15 @@ async def sandbox_test(message: types.Message):
     send_message = "Запущен тест на песочнице:"
     await message.answer(send_message)
 
-    results = my_moving_average.main(start_balance_units = 100000, long_ma_min = 13, long_ma_max = 15, short_ma_min = 3, short_ma_max = 4, std_period_min = 5,  std_period_max = 6)
+    results = my_moving_average.main(
+        user_data['start_balance_units'],
+        user_data['long_ma_min'],
+        user_data['long_ma_max'],
+        user_data['short_ma_min'],
+        user_data['short_ma_max'],
+        user_data['std_period_min'],
+        user_data['std_period_max']
+        )
 
     send_message = "Тест на песочнице закончен:"
     await message.answer(send_message)
