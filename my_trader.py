@@ -16,14 +16,14 @@ from tinkoff.invest import (
     OrderType,
 )
 from tinkoff.invest.services import Services
-from tinkoff.invest.strategies.base.account_manager import AccountManager
+#from tinkoff.invest.strategies.base.account_manager import AccountManager
 from tinkoff.invest.strategies.base.errors import MarketDataNotAvailableError
 from tinkoff.invest.strategies.base.event import DataEvent, SignalEvent
 from tinkoff.invest.strategies.base.models import CandleEvent
 from tinkoff.invest.strategies.base.signal import CloseSignal, OpenSignal, Signal,OpenLongMarketOrder,CloseLongMarketOrder
-from tinkoff.invest.strategies.base.signal_executor_base import SignalExecutor
+#from tinkoff.invest.strategies.base.signal_executor_base import SignalExecutor
 from tinkoff.invest.strategies.base.trader_base import Trader
-from tinkoff.invest.strategies.moving_average.strategy import MovingAverageStrategy
+#from tinkoff.invest.strategies.moving_average.strategy import MovingAverageStrategy
 from tinkoff.invest.strategies.moving_average.strategy_settings import (
     MovingAverageStrategySettings,
 )
@@ -38,7 +38,12 @@ from tinkoff.invest.utils import (
     floor_datetime,
     now,
 )
-
+import my_signal_executor_base
+from my_signal_executor_base import SignalExecutor
+from my_account_manager import AccountManager
+import my_moving_average
+import my_strategy
+from my_strategy import MovingAverageStrategy
 
 
 logger = logging.getLogger(__name__)
@@ -153,11 +158,11 @@ class MovingAverageStrategyTrader(Trader):
         logger.info("Trying to execute signal %s", signal)
         try:
             self._signal_executor.execute(signal)
-        except InvestError:
+        except:
             was_executed = False
-            logger.info("Signal was_executed = False")
-            logger.info("InvestError.__cause__ %s", InvestError.__cause__)
-            logger.info("InvestError.__context__ %s", InvestError.__context__)
+            # logger.info("Signal was_executed = False")
+            # logger.info("InvestError.__cause__ %s", InvestError.__cause__)
+            # logger.info("InvestError.__context__ %s", InvestError.__context__)
         else:
             was_executed = True
         self._supervisor.notify(
