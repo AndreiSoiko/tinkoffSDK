@@ -1,4 +1,5 @@
 import logging
+from urllib import response
 from aiogram import Bot, Dispatcher, executor, types
 import os
 from aiogram.utils.exceptions import BotBlocked, NetworkError
@@ -10,10 +11,19 @@ from numpy import std
 import my_moving_average
 import robot_fatbold
 import asyncio
+from aiogram.dispatcher import FSMContext
+from aiogram.dispatcher.filters.state import State, StatesGroup
 
 
 BOT_TOKEN = os.environ["INVEST_BOT_TOKEN"]                             
-password = os.environ["INVEST_BOT_PASSWORD"]               
+password = os.environ["INVEST_BOT_PASSWORD"]  
+
+available_passwords = [password]
+
+#Состояния для проверки доступа к боту
+class bot_access(StatesGroup):
+    waiting_for_password = State()
+    waiting_for_start = State()
 
 #Переключатели для понимания в каком состоянии находится торговый робот
 #if robot_must_work == False, то при следующем выходе из генератора, цикл прервется и торговый робот будет отключен. 
@@ -21,6 +31,8 @@ trade_robot_states = {
     "status_trade_robot": False,
     "robot_must_work": True
 }
+
+bot_access.waiting_for_password.set()
 
 # Объект бота
 bot = Bot(token = BOT_TOKEN)
@@ -57,6 +69,11 @@ user_data = {
     'std_period_min':6,
     'std_period_max':8,    
 }
+
+def check_access() -> bool:
+     if bot_access.waiting_for_password:
+        return False
+
 
 def get_keyboard_fab(parametr:str) -> types.InlineKeyboardMarkup:
     buttons = [
@@ -134,6 +151,32 @@ async def callbacks_num_finish_fab(call: types.CallbackQuery, callback_data: dic
 async def cmd_start(message: types.Message):
     
     await message.answer("Введите пароль")
+    await bot_access.waiting_for_password.set()
+
+
+async def check_password(message):
+    if message.text not in available_passwords:
+        await message.answer("Пароль неверный! Укажите правильный пароль:")
+        return
+    await bot_access.waiting_for_start.set()
+
+    """Запускает бота"""
+    greeting = """Привет! Я робот. Меня зовут Толстый жирный. \n Я умею торговать на бирже. И делать твое депо толстым и жирным. \n
+    Ты можешь ввести команду /help и прочитать инструкцию по работе со мной. \n Она выглядит так:"""
+    await message.answer(greeting)    
+    await message.answer(help)
+
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True,row_width=2)
+    buttons = [
+    "Запустить торгового робота", 
+    "Тест в песочнице",
+    "Настройки",
+    "Инструкция",
+    "Баланс"    
+    ]
+    keyboard.add(*buttons)
+    await message.answer("Что делать, хозяин?", reply_markup=keyboard) 
+
 
 @dp.message_handler(Text(equals="главное меню"))
 async def main_menu(message: types.Message):
@@ -147,6 +190,12 @@ async def main_menu(message: types.Message):
     ]
     keyboard.add(*buttons)
     await message.answer("Что делать, хозяин?", reply_markup=keyboard)
+
+@dp.message_handler(Text(equals="Баланс"))
+async def get_balance(message: types.Message):
+    
+    info = await robot_fatbold.get_balance()
+    await message.answer("Пока не работает. Потому, что надо передавать все параметры стратегии, чтобы получить данные")
 
     
 @dp.message_handler(commands=password)
@@ -172,6 +221,10 @@ async def cmd_password(message: types.Message):
     
 @dp.message_handler(Text(equals="Запустить торгового робота"))
 async def start_trade(message: types.Message):
+
+    # if check_access() == False:
+    #     await message.answer("У вас нет доступа к боту. Введите пароль:")
+    #     return
     
     
     if trade_robot_states["status_trade_robot"] == False: 
@@ -371,6 +424,8 @@ async def set(message: types.Message):
     std_period: {std_period}   \n
     """)
 
+
+
 @dp.message_handler(lambda message: message.text == "Инструкция")
 async def show_help(message: types.Message):
 
@@ -397,6 +452,22 @@ async def error_Network_Error(update: types.Update, exception: NetworkError):
     # Такой хэндлер должен всегда возвращать True,
     # если дальнейшая обработка не требуется.
     return True
+
+
+@dp.message_handler()
+async def show_help(message: types.Message, state: FSMContext):
+
+    if bot_access.waiting_for_password:
+        await check_password(message)
+    else:
+        await message.answer("Я бы на это не рассчитывал :-)")
+
+    
+def register_handlers_access(dp: Dispatcher):
+    dp.register_message_handler(cmd_start, commands="start", state="*")
+    dp.register_message_handler(check_password, state=bot_access.waiting_for_password)
+    dp.register_message_handler(main_menu, state=bot_access.waiting_for_start)
+
 
 
 if __name__ == "__main__":
