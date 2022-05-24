@@ -49,9 +49,9 @@ from tinkoff.invest.services import MarketDataStreamManager
 from tinkoff.invest.services import MarketDataService
 from tinkoff.invest import GetTradingStatusRequest
 
-import account_manager
-import trader
-import strategy
+import my_account_manager
+import my_trader
+import my_strategy
 
 
 #Все даты учитываются по всемирному времени
@@ -135,7 +135,7 @@ def main(long_ma = 30, short_ma= 3, std_period = 22):
         )
 
         #Позволяет получать информацию о состоянии счета
-        account_manager = AccountManager(
+        account_manager = my_account_manager.AccountManager(
                 services=client, strategy_settings=settings
             )
 
@@ -143,7 +143,7 @@ def main(long_ma = 30, short_ma= 3, std_period = 22):
         state = MovingAverageStrategyState()
 
         #Сама стратегия, в которой проводит анализ данных рынка и генерирует сигналы
-        strategy = MovingAverageStrategy(
+        strategy = my_strategy.MovingAverageStrategy(
                 settings=settings,
                 account_manager=account_manager,
                 state=state,
@@ -161,7 +161,7 @@ def main(long_ma = 30, short_ma= 3, std_period = 22):
         )
 
         #Объект, который собирает в себе все предыдущие объекты и ими управляет. Его метод trade() выполняет 1 такт торговли.
-        moving_average_strategy_trader = MovingAverageStrategyTrader(
+        moving_average_strategy_trader = my_trader.MovingAverageStrategyTrader(
                 strategy=strategy,
                 settings=settings,
                 services=client,
@@ -197,24 +197,7 @@ def main(long_ma = 30, short_ma= 3, std_period = 22):
             print(marketdata) #Создает ощущение матрицы в терминале
             market_data_stream.info.subscribe([InfoInstrument(figi)])  #Подписываемся на получение информации о акциях ВТБ
 
-            if marketdata.subscribe_info_response == None:  #Если данные перестали передаваться. Остановим робота
-                market_data_stream.stop()
-                client.cancel_all_orders(account_id=account_id) #Закроем все ордера
-
-                balance, shares = account_manager.get_current_balance() 
-                profit = float(balance - start_balance_units + shares - start_shares)
-                profit_shares =  float(shares - start_shares)      
-
-                response = {
-                   'status': "Торги сейчас не ведуться",
-                   'profit': profit,
-                   'profit_shares': profit_shares,
-                   'balance': balance,
-                   'shares': shares
-                }
-                yield response
-
-            
+                        
             market_order_available_flag = client.market_data.get_trading_status(figi = default_stock['figi']).market_order_available_flag
             if market_order_available_flag: #Торговля доступна  
                 moving_average_strategy_trader.trade()
