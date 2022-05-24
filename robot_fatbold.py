@@ -58,7 +58,7 @@ import my_strategy
 def start_datetime() -> datetime:
     return datetime.now()
 
-def main(long_ma = 30, short_ma= 3, std_period = 22):
+async def main(long_ma = 30, short_ma= 3, std_period = 22):
 
     TOKEN = os.environ["IIS_INVEST_TOKEN"]
 
@@ -216,7 +216,7 @@ def main(long_ma = 30, short_ma= 3, std_period = 22):
                    'shares': shares
                 }
                 yield response  #Вернем телеграмм боту информцию о текущей работе робота
-                time.sleep(60) #Уснем на 60 секунд. Свечи то, минутные ))
+                time.sleep(3) #Уснем на 60 секунд. Свечи то, минутные ))
             
                 
             else:

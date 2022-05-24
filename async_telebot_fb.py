@@ -7,8 +7,8 @@ import my_moving_average
 import robot_fatbold
 
 
-BOT_TOKEN = '5322216812:AAEQ6FCyK4EsaWRVfFDxWNojMebXnfe7KY8'
-password = "000036"
+BOT_TOKEN = os.environ["INVEST_BOT_TOKEN"]                             
+password = os.environ["INVEST_BOT_PASSWORD"]               
 
 status_trade_robot = False #Глобальная переменная для хранения статуса робота.
 robot_must_work = True #Глобальная переменная для остановки робота
@@ -81,7 +81,7 @@ async def start_trade(message: types.Message):
         flag = True #Чтобы один раз сообщить, что робот запущен.
 
         while status ==  "Working" and robot_must_work:
-            response = next(gen)
+            response = await gen.__anext__()
             status = response['status'] 
             if flag and status == "Working":
                 keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True,row_width=2)
