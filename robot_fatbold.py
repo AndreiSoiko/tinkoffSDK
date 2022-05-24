@@ -52,6 +52,7 @@ from tinkoff.invest import GetTradingStatusRequest
 import my_account_manager
 import my_trader
 import my_strategy
+import asyncio
 
 
 #Все даты учитываются по всемирному времени
