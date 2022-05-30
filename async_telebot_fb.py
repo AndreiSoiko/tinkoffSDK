@@ -300,6 +300,7 @@ async def stop_trade(message: types.Message):
 
     if trade_robot_states['status_trade_robot'] == True: 
         trade_robot_states['robot_must_work'] = False #Глобальная переменная для остановки робота
+        await message.answer("Робот будет остановлен в течении ~60 сек.")
     else:        
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True,row_width=2)
         buttons = [
