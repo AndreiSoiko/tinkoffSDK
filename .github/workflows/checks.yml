@@ -1,0 +1,29 @@
+name: Code checks
+
+on:
+    push:
+        branches: [master]
+    pull_request:
+        branches: [master]
+
+jobs:
+    build:
+        runs-on: ununtu-latest
+        strategy:
+            matrix:
+                python-version: [3.9,3.10]
+        steps:
+            - uses: actions/chekout@v2
+            - name: Install python ${{matrix.python-version}}
+            uses: actions/setup-python@v2
+            with:
+                python-version: ${{matrix.python-version}}
+            - name: Install deps
+              run: |
+                  python -m pip install --upgrade pip
+                  pip install -r requirements.txt
+            - name: Run flake8 
+              run: flake8 .
+            - name: Run mupy
+              run: mypy .
+        
