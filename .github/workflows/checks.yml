@@ -15,8 +15,8 @@ jobs:
         steps:
             - uses: actions/chekout@v2
             - name: Install python ${{matrix.python-version}}
-                uses: actions/setup-python@v2
-                with:
+              uses: actions/setup-python@v2
+              with:
                 python-version: ${{matrix.python-version}}
             - name: Install deps
               run: |
