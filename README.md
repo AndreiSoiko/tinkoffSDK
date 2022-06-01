@@ -1,6 +1,6 @@
 # tinkoffSDK
 
-![Build Status]()
+![Build Status](https://github.com/AndreiSoiko/tinkoffSDK/actions/workflows/checks.yml/badge.svg?branch=master)
 
 tinkoffSDK contest
 
