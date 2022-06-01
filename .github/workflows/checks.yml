@@ -11,7 +11,7 @@ jobs:
         runs-on: ununtu-latest
         strategy:
             matrix:
-                python-version: [3.9,3.10]
+                python-version: [3.10]
         steps:
             - uses: actions/chekout@v2
             - name: Install python ${{matrix.python-version}}
