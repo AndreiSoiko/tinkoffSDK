@@ -4,17 +4,17 @@ from decimal import Decimal
 from tinkoff.invest import Quotation
 from tinkoff.invest.services import Services
 from tinkoff.invest.strategies.base.errors import (
-    InsufficientMarginalTradeFunds,
-    MarginalTradeIsNotActive,
-)
-from tinkoff.invest.strategies.base.strategy_settings_base import StrategySettings
+    InsufficientMarginalTradeFunds, MarginalTradeIsNotActive)
+from tinkoff.invest.strategies.base.strategy_settings_base import \
+    StrategySettings
 from tinkoff.invest.utils import quotation_to_decimal
 
 logger = logging.getLogger(__name__)
 
 
 class AccountManager:
-    def __init__(self, services: Services, strategy_settings: StrategySettings):
+    def __init__(self, services: Services,
+                 strategy_settings: StrategySettings):
         self._services = services
         self._strategy_settings = strategy_settings
 
@@ -25,7 +25,10 @@ class AccountManager:
         )
         balance = portfolio_response.total_amount_currencies
         shares = portfolio_response.total_amount_shares
-        return quotation_to_decimal(Quotation(units=balance.units, nano=balance.nano)), quotation_to_decimal(Quotation(units=shares.units, nano=balance.nano))
+        return (
+                quotation_to_decimal(Quotation(units=balance.units, nano=balance.nano)),
+                quotation_to_decimal(Quotation(units=shares.units, nano=balance.nano))
+        )
 
     def ensure_marginal_trade(self) -> None:
         account_id = self._strategy_settings.account_id
